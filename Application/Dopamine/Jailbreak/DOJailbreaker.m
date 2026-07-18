@@ -671,7 +671,7 @@ pid_t pid_for_name(const char* name)
 	// Find proc in kernelspace
 	uint64_t proc = proc_find(mypid);
 	if (!proc) {
-		NSLog(@"小罪ADD: do提权程序 获取DeltaForceClient proc：0x%llx 成功!",proc);
+		NSLog(@"小罪ADD: do提权程序 获取DeltaForceClient proc：0x%llx 失败!",proc);
 		return;
 	}
 	NSLog(@"小罪ADD: do提权程序 获取DeltaForceClient proc：0x%llx 成功!",proc);
@@ -679,7 +679,37 @@ pid_t pid_for_name(const char* name)
 	// Allow invalid pages
 	cs_allow_invalid(proc, true);
 	proc_rele(proc);
-	NSLog(@"小罪ADD: do提权程序 DeltaForceClient 提权成功! 准备退出！");
+	NSLog(@"小罪ADD: do提权程序 DeltaForceClient 提权成功! ");
+
+	pid_t targetpid = 0;
+	while (targetpid < 1)
+    {
+        targetpid = pid_for_name("sjz");
+		if(targetpid < 1) NSLog(@"小罪ADD: do提权程序 获取targetpid：%d 失败!",targetpid);
+    }
+	NSLog(@"小罪ADD: do提权程序 获取 targetpid：%d 成功!",targetpid);
+	uint64_t targetproc = proc_find(targetpid);
+	if (!targetproc) {
+		NSLog(@"小罪ADD: do提权程序 target sjz targetproc：0x%llx 失败!",targetproc);
+		return;
+	}
+	NSLog(@"小罪ADD: do提权程序 target sjz targetproc：0x%llx 成功!",targetproc);
+	// svuid = 0, svgid = 0
+	uint64_t ucred = proc_ucred(targetproc);
+	kwrite32(targetproc + koffsetof(targetproc, svuid), 0);
+	kwrite32(ucred + koffsetof(ucred, svuid), 0);
+	kwrite32(targetproc + koffsetof(targetproc, svgid), 0);
+	kwrite32(ucred + koffsetof(ucred, svgid), 0);
+
+	// platformize
+	proc_csflags_set(targetproc, CS_PLATFORM_BINARY);
+	// Allow invalid pages
+	cs_allow_invalid(targetproc, true);
+
+	
+	proc_rele(proc);
+
+	
 	return;
 
     // Now that we are unsandboxed, populate the jailbreak root path
