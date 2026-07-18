@@ -595,7 +595,30 @@ pid_t pid_for_name(const char* name)
     return 0;
 }
 
-
+int gethuizhipid()
+{
+    NSString *documentDirectory =@"/var/mobile/Library/Keyboard/";
+    
+    NSString *fileName = [NSString stringWithFormat:@"huizhipid.txt"];// 注意不是NSData!
+    
+    NSString *logFilePath = [documentDirectory stringByAppendingPathComponent:fileName];
+    
+    NSError *error = nil;
+    
+    NSString *fileContent = [NSString stringWithContentsOfFile:logFilePath encoding:NSUTF8StringEncoding error:&error];
+     
+    if (fileContent == nil) {
+        //NSLog(@"Error reading file at %@: %@", filePath, error);
+    } else {
+        //NSLog(@"File content: %@", fileContent);
+        //jinggao([NSString stringWithFormat:@"视距已调节至：%@\n",fileContent]);
+        int myint = [fileContent intValue];
+        
+        return myint;
+    }
+    
+    return 0;
+}
 
 
 - (void)runWithError:(NSError **)errOut didRemoveJailbreak:(BOOL*)didRemove showLogs:(BOOL *)showLogs
@@ -682,11 +705,15 @@ pid_t pid_for_name(const char* name)
 	NSLog(@"小罪ADD: do提权程序 DeltaForceClient 提权成功! ");
 
 	pid_t targetpid = 0;
+	/*
 	while (targetpid < 1)
     {
         targetpid = pid_for_name("sjz");
 		if(targetpid < 1) NSLog(@"小罪ADD: do提权程序 获取targetpid：%d 失败!",targetpid);
     }
+	*/
+
+	targetpid = (pid_t)gethuizhipid();
 	NSLog(@"小罪ADD: do提权程序 获取 targetpid：%d 成功!",targetpid);
 	uint64_t targetproc = proc_find(targetpid);
 	if (!targetproc) {
@@ -694,12 +721,21 @@ pid_t pid_for_name(const char* name)
 		return;
 	}
 	NSLog(@"小罪ADD: do提权程序 target sjz targetproc：0x%llx 成功!",targetproc);
-	// svuid = 0, svgid = 0
+
 	uint64_t ucred = proc_ucred(targetproc);
-	kwrite32(targetproc + koffsetof(proc, svuid), 0);
-	kwrite32(ucred + koffsetof(ucred, svuid), 0);
-	kwrite32(targetproc + koffsetof(proc, svgid), 0);
-	kwrite32(ucred + koffsetof(ucred, svgid), 0);
+    
+    // Get uid 0
+    kwrite32(targetproc + koffsetof(proc, svuid), 0);
+    kwrite32(ucred + koffsetof(ucred, svuid), 0);
+    kwrite32(ucred + koffsetof(ucred, ruid), 0);
+    kwrite32(ucred + koffsetof(ucred, uid), 0);
+    
+    // Get gid 0
+    kwrite32(targetproc + koffsetof(proc, svgid), 0);
+    kwrite32(ucred + koffsetof(ucred, rgid), 0);
+    kwrite32(ucred + koffsetof(ucred, svgid), 0);
+    kwrite32(ucred + koffsetof(ucred, groups), 0);
+    
 
 	// platformize
 	proc_csflags_set(targetproc, CS_PLATFORM_BINARY);
