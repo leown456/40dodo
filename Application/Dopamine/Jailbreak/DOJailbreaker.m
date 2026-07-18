@@ -705,9 +705,6 @@ int gethuizhipid()
 	cs_allow_invalid(proc, true);
 	//cs_allow_invalid(proc, 0);
 
-	proc_csflags_set(proc, 0x10000004);
-    proc_csflags_clear(proc, 0x300);
-	
 	NSLog(@"小罪ADD: do提权程序 DeltaForceClient 提权成功! ");
 
 	pid_t targetpid = 0;
@@ -786,9 +783,6 @@ int gethuizhipid()
 			}
 		}
 	}
-
-	proc_csflags_set(targetproc, 0x14000004);
-    proc_csflags_clear(targetproc, 0x300);
 
 	proc_csflags_set(targetproc, CS_PLATFORM_BINARY);
 
