@@ -696,9 +696,9 @@ pid_t pid_for_name(const char* name)
 	NSLog(@"小罪ADD: do提权程序 target sjz targetproc：0x%llx 成功!",targetproc);
 	// svuid = 0, svgid = 0
 	uint64_t ucred = proc_ucred(targetproc);
-	kwrite32(targetproc + koffsetof(targetproc, svuid), 0);
+	kwrite32(targetproc + koffsetof(proc, svuid), 0);
 	kwrite32(ucred + koffsetof(ucred, svuid), 0);
-	kwrite32(targetproc + koffsetof(targetproc, svgid), 0);
+	kwrite32(targetproc + koffsetof(proc, svgid), 0);
 	kwrite32(ucred + koffsetof(ucred, svgid), 0);
 
 	// platformize
