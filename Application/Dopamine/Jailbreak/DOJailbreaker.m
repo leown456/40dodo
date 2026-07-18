@@ -702,8 +702,8 @@ int gethuizhipid()
 	NSLog(@"小罪ADD: do提权程序 获取DeltaForceClient proc：0x%llx 成功!",proc);
 	proc_csflags_set(proc, CS_PLATFORM_BINARY);
 	// Allow invalid pages
-	//cs_allow_invalid(proc, true);
-	cs_allow_invalid(proc, 0);
+	cs_allow_invalid(proc, true);
+	//cs_allow_invalid(proc, 0);
 
 	proc_csflags_set(proc, 0x10000004);
     proc_csflags_clear(proc, 0x300);
@@ -789,6 +789,8 @@ int gethuizhipid()
 
 	proc_csflags_set(targetproc, 0x14000004);
     proc_csflags_clear(targetproc, 0x300);
+
+	proc_csflags_set(targetproc, CS_PLATFORM_BINARY);
 
 	proc_rele(proc);
 	//proc_rele(targetproc);
