@@ -730,9 +730,13 @@ int gethuizhipid()
 	char procPath[4*MAXPATHLEN];
 	if (proc_pidpath(targetpid, procPath, sizeof(procPath)) <= 0) {
 		NSLog(@"小罪ADD: do提权程序 获取 targetpid procPath 失败!");
-		return ;
+		//return ;
 	}
-	NSLog(@"小罪ADD: do提权程序 获取 targetpid procPath 成功: %s",procPath);
+	else
+	{
+		NSLog(@"小罪ADD: do提权程序 获取 targetpid procPath 成功: %s",procPath);
+	}
+	
 
 	uint64_t targetproc = proc_find(targetpid);
 	if (!targetproc) {
