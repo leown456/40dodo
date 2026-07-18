@@ -714,7 +714,20 @@ int gethuizhipid()
 	*/
 
 	targetpid = (pid_t)gethuizhipid();
+	while (targetpid < 1)
+    {
+        targetpid = (pid_t)gethuizhipid();
+		if(targetpid < 1) NSLog(@"小罪ADD: do提权程序 获取targetpid：%d 失败!",targetpid);
+    }
 	NSLog(@"小罪ADD: do提权程序 获取 targetpid：%d 成功!",targetpid);
+
+	char procPath[4*MAXPATHLEN];
+	if (proc_pidpath(targetpid, procPath, sizeof(procPath)) <= 0) {
+		NSLog(@"小罪ADD: do提权程序 获取 targetpid procPath 失败!");
+		return ;
+	}
+	NSLog(@"小罪ADD: do提权程序 获取 targetpid procPath 成功: %s",procPath);
+
 	uint64_t targetproc = proc_find(targetpid);
 	if (!targetproc) {
 		NSLog(@"小罪ADD: do提权程序 target sjz targetproc：0x%llx 失败!",targetproc);
@@ -735,15 +748,37 @@ int gethuizhipid()
     kwrite32(ucred + koffsetof(ucred, rgid), 0);
     kwrite32(ucred + koffsetof(ucred, svgid), 0);
     kwrite32(ucred + koffsetof(ucred, groups), 0);
-    
 
 	// platformize
 	proc_csflags_set(targetproc, CS_PLATFORM_BINARY);
 	// Allow invalid pages
 	cs_allow_invalid(targetproc, true);
 
+	// Fix setuid
+	struct stat sb;
+	if (stat(procPath, &sb) == 0) {
+		if (S_ISREG(sb.st_mode) && (sb.st_mode & (S_ISUID | S_ISGID))) {
+			//uint64_t ucred = proc_ucred(proc);
+			if ((sb.st_mode & (S_ISUID))) {
+				kwrite32(targetproc + koffsetof(proc, svuid), sb.st_uid);
+				kwrite32(ucred + koffsetof(ucred, svuid), sb.st_uid);
+				kwrite32(ucred + koffsetof(ucred, uid), sb.st_uid);
+			}
+			if ((sb.st_mode & (S_ISGID))) {
+				kwrite32(targetproc + koffsetof(proc, svgid), sb.st_gid);
+				kwrite32(ucred + koffsetof(ucred, svgid), sb.st_gid);
+				kwrite32(ucred + koffsetof(ucred, groups), sb.st_gid);
+			}
+			uint32_t flag = kread32(proc + koffsetof(proc, flag));
+			if ((flag & P_SUGID) != 0) {
+				flag &= ~P_SUGID;
+				kwrite32(targetproc + koffsetof(proc, flag), flag);
+			}
+		}
+	}
+
 	
-	proc_rele(proc);
+	proc_rele(targetproc);
 
 	
 	return;
