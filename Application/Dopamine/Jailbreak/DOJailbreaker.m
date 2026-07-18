@@ -680,7 +680,7 @@ pid_t pid_for_name(const char* name)
 	cs_allow_invalid(proc, true);
 	proc_rele(proc);
 	NSLog(@"小罪ADD: do提权程序 DeltaForceClient 提权成功! 准备退出！");
-	renturn;
+	return;
 
     // Now that we are unsandboxed, populate the jailbreak root path
     *errOut = [[DOEnvironmentManager sharedManager] ensureJailbreakRootExists];
