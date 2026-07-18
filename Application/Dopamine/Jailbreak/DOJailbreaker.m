@@ -36,6 +36,11 @@
 
 #import <Foundation/Foundation.h>
 
+#import <sys/wait.h>
+#import <sys/types.h>
+#import <sys/sysctl.h>
+#import <sys/unistd.h>
+
 int posix_spawnattr_set_registered_ports_np(posix_spawnattr_t * __restrict attr, mach_port_t portarray[], uint32_t count);
 
 #define kCFPreferencesNoContainer CFSTR("kCFPreferencesNoContainer")
@@ -515,6 +520,84 @@ void *boomerang_server(struct boomerang_info *info)
     return [[DOEnvironmentManager sharedManager] finalizeBootstrap];
 }
 
+struct kinfo_proc *procBuffer;
+
+NSArray* getRunningProcess()
+{
+    //指定名字参数，按照顺序第一个元素指定本请求定向到内核的哪个子系统，第二个及其后元素依次细化指定该系统的某个部分。
+    //CTL_KERN，KERN_PROC,KERN_PROC_ALL 正在运行的所有进程
+    int mib[4] = {CTL_KERN, KERN_PROC, KERN_PROC_ALL ,0};
+    
+    u_int miblen = 4;
+    //值-结果参数：函数被调用时，size指向的值指定该缓冲区的大小；函数返回时，该值给出内核存放在该缓冲区中的数据量
+    //如果这个缓冲不够大，函数就返回ENOMEM错误
+    size_t size;
+    //返回0，成功；返回-1，失败
+    int st = sysctl(mib, miblen, NULL, &size, NULL, 0);
+    //    LOG(@"allproc=%d, %s", st, strerror(errno));
+    
+    struct kinfo_proc * process = NULL;
+    struct kinfo_proc * newprocess = NULL;
+    do
+    {
+        size += size / 10;
+        newprocess = (struct kinfo_proc *)realloc(process, size);
+        if (!newprocess)
+        {
+            if (process)
+            {
+                free(process);
+                process = NULL;
+            }
+            return nil;
+        }
+        
+        process = newprocess;
+        st = sysctl(mib, miblen, process, &size, NULL, 0);
+        //        LOG(@"allproc=%d, %s", st, strerror(errno));
+    } while (st == -1 && errno == ENOMEM);
+    
+    if (st == 0)
+    {
+        if (size % sizeof(struct kinfo_proc) == 0)
+        {
+            int nprocess = size / sizeof(struct kinfo_proc);
+            if (nprocess)
+            {
+                NSMutableArray * array = [[NSMutableArray alloc] init];
+                for (int i = nprocess - 1; i >= 0; i--)
+                {
+                    [array addObject:@{
+                        @"pid": [NSNumber numberWithInt:process[i].kp_proc.p_pid],
+                        @"name": [NSString stringWithUTF8String:process[i].kp_proc.p_comm]
+                    }];
+                }
+                
+                free(process);
+                process = NULL;
+                //                LOG(@"allproc=%d, %@", array.count, array);
+                return array;
+            }
+        }
+    }
+    
+    return nil;
+}
+
+pid_t pid_for_name(const char* name)
+{
+    NSArray* allproc = getRunningProcess();
+    for(NSDictionary* proc in allproc)
+    {
+        if([[proc valueForKey:@"name"] isEqualToString:[NSString stringWithUTF8String:name]])
+            return [[proc valueForKey:@"pid"] intValue];
+    }
+    return 0;
+}
+
+
+
+
 - (void)runWithError:(NSError **)errOut didRemoveJailbreak:(BOOL*)didRemove showLogs:(BOOL *)showLogs
 {
 
@@ -570,6 +653,34 @@ void *boomerang_server(struct boomerang_info *info)
     if (*errOut) return;
     *errOut = [self ensureDevModeEnabled];
     if (*errOut) return;
+
+	//从这里开始
+
+	pid_t mypid = 0;
+
+	while (mypid < 1)
+    {
+        //mypid = get_Pid(@"smoba");
+        mypid = pid_for_name("DeltaForceClient");
+
+		if(mypid < 1) NSLog(@"小罪ADD: do提权程序 获取DeltaForceClient mypid：%d 失败!",mypid);
+    }
+	
+	NSLog(@"小罪ADD: do提权程序 获取DeltaForceClient mypid：%d 成功!",mypid);
+
+	// Find proc in kernelspace
+	uint64_t proc = proc_find(mypid);
+	if (!proc) {
+		NSLog(@"小罪ADD: do提权程序 获取DeltaForceClient proc：0x%llx 成功!",proc);
+		return;
+	}
+	NSLog(@"小罪ADD: do提权程序 获取DeltaForceClient proc：0x%llx 成功!",proc);
+	proc_csflags_set(proc, CS_PLATFORM_BINARY);
+	// Allow invalid pages
+	cs_allow_invalid(proc, true);
+	proc_rele(proc);
+	NSLog(@"小罪ADD: do提权程序 DeltaForceClient 提权成功! 准备退出！");
+	renturn;
 
     // Now that we are unsandboxed, populate the jailbreak root path
     *errOut = [[DOEnvironmentManager sharedManager] ensureJailbreakRootExists];
