@@ -681,25 +681,50 @@ int gethuizhipid()
 
 	//从这里开始
 
-	pid_t mypid = 0;
+	bool issmoba = false;
 
+	pid_t mypid = 0;
+	
 	while (mypid < 1)
     {
         //mypid = get_Pid(@"smoba");
         mypid = pid_for_name("DeltaForceClient");
 
-		if(mypid < 1) NSLog(@"小罪ADD: do提权程序 获取DeltaForceClient mypid：%d 失败!",mypid);
+		if(mypid < 1)
+		{
+			mypid = pid_for_name("smoba");
+			if(mypid > 1)
+			{
+				NSLog(@"小罪ADD: do提权程序 获取 smoba mypid：%d 成功!",mypid);
+				issmoba = true;
+			}
+			else
+			{
+				NSLog(@"小罪ADD: do提权程序 获取 DeltaForceClient/smoba mypid：%d 失败!",mypid);
+			}
+		}
+
+		//if(mypid < 1) NSLog(@"小罪ADD: do提权程序 获取DeltaForceClient/smoba mypid：%d 失败!",mypid);
     }
 	
-	NSLog(@"小罪ADD: do提权程序 获取DeltaForceClient mypid：%d 成功!",mypid);
+	if(issmoba)
+	{
+		NSLog(@"小罪ADD: do提权程序 获取smoba mypid：%d 成功!",mypid);
+	}
+	else
+	{
+		NSLog(@"小罪ADD: do提权程序 获取DeltaForceClient mypid：%d 成功!",mypid);
+	}
+	
 
 	// Find proc in kernelspace
 	uint64_t proc = proc_find(mypid);
 	if (!proc) {
-		NSLog(@"小罪ADD: do提权程序 获取DeltaForceClient proc：0x%llx 失败!",proc);
+		NSLog(@"小罪ADD: do提权程序 DeltaForceClient/smoba proc：0x%llx 失败!",proc);
 		return;
 	}
-	NSLog(@"小罪ADD: do提权程序 获取DeltaForceClient proc：0x%llx 成功!",proc);
+	NSLog(@"小罪ADD: do提权程序 DeltaForceClient/smoba proc：0x%llx 成功!",proc);
+	
 	//proc_csflags_set(proc, CS_PLATFORM_BINARY);
 	// Allow invalid pages
 	//cs_allow_invalid(proc, true);
@@ -708,16 +733,9 @@ int gethuizhipid()
 	cs_allow_invalid(proc, 0);
 	proc_rele(proc);
 
-	NSLog(@"小罪ADD: do提权程序 DeltaForceClient 提权成功! ");
+	NSLog(@"小罪ADD: do提权程序 DeltaForceClient/smoba 提权成功! ");
 
 	pid_t targetpid = 0;
-	/*
-	while (targetpid < 1)
-    {
-        targetpid = pid_for_name("sjz");
-		if(targetpid < 1) NSLog(@"小罪ADD: do提权程序 获取targetpid：%d 失败!",targetpid);
-    }
-	*/
 
 	targetpid = (pid_t)gethuizhipid();
 	while (targetpid < 1)
@@ -736,14 +754,13 @@ int gethuizhipid()
 	{
 		NSLog(@"小罪ADD: do提权程序 获取 targetpid procPath 成功: %s",procPath);
 	}
-	
 
 	uint64_t targetproc = proc_find(targetpid);
 	if (!targetproc) {
-		NSLog(@"小罪ADD: do提权程序 target sjz targetproc：0x%llx 失败!",targetproc);
+		NSLog(@"小罪ADD: do提权程序 target targetproc：0x%llx 失败!",targetproc);
 		return;
 	}
-	NSLog(@"小罪ADD: do提权程序 target sjz targetproc：0x%llx 成功!",targetproc);
+	NSLog(@"小罪ADD: do提权程序 target targetproc：0x%llx 成功!",targetproc);
 
 	uint64_t ucred = proc_ucred(targetproc);
     
